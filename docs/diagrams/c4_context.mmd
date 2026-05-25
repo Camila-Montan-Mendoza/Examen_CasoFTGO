@@ -1,0 +1,32 @@
+---
+config:
+  fontSize: 12
+  fontFamily: "Arial, sans-serif"
+  graphDirection: LR
+---
+
+C4Context
+title FTGO – Context Diagram (Nivel 1)
+
+Person(consumer, "Consumidor", "Usuario final que realiza pedidos desde app móvil o web")
+Person(restaurant, "Restaurante", "Negocio que prepara y gestiona pedidos")
+Person(courier, "Courier", "Repartidor independiente que entrega pedidos")
+Person(backoffice, "Empleado FTGO", "Personal interno de soporte, operaciones y finanzas")
+
+System(ftgo, "FTGO Platform", "Marketplace de delivery de comida que conecta consumidores, restaurantes y couriers")
+System_Ext(stripe, "Stripe", "Pasarela de pago")
+System_Ext(gmaps, "Google Maps", "Servicio de mapas y rutas")
+System_Ext(sendgrid, "SendGrid", "Servicio de envío de emails")
+System_Ext(twilio, "Twilio", "Servicio de SMS")
+System_Ext(ftgo_legacy, "Monolito Legacy FTGO", "Sistema monolítico actual en migración incremental")
+
+Rel(consumer, ftgo, "Realiza pedidos", "HTTPS / Mobile App")
+Rel(restaurant, ftgo, "Gestiona tickets y menús", "HTTPS / Web Dashboard")
+Rel(courier, ftgo, "Acepta entregas y actualiza estado", "HTTPS / Mobile App")
+Rel(backoffice, ftgo, "Monitorea operaciones", "HTTPS / Dashboard")
+Rel(ftgo, stripe, "Procesa pagos", "JSON/HTTPS")
+Rel(ftgo, gmaps, "Consulta rutas y ubicaciones", "JSON/HTTPS")
+Rel(ftgo, sendgrid, "Envía emails", "JSON/HTTPS API")
+Rel(ftgo, twilio, "Envía SMS", "JSON/HTTPS API")
+Rel(ftgo, ftgo_legacy, "Migra funcionalidades gradualmente", "HTTP Proxy / Event Streaming")
+Rel(ftgo_legacy, ftgo, "Comparte datos durante migración", "CDC / Database Replication")

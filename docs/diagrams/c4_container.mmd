@@ -1,0 +1,119 @@
+---
+config:
+  fontSize: 11
+  fontFamily: "Arial, sans-serif"
+  graphDirection: TB
+---
+
+C4Container
+title FTGO – Container Diagram (Nivel 2 - Arquitectura objetivo de microservicios)
+
+Person(consumer_c2, "Consumidor", "Usuario final, accede vía móvil/web")
+Person(restaurant_c2, "Restaurante", "Negocio, accede vía dashboard web")
+Person(courier_c2, "Courier", "Repartidor, accede vía móvil")
+Person(backoffice_c2, "Empleado FTGO", "Personal, accede vía dashboard")
+
+System_Boundary(ftgo_platform, "FTGO Platform") {
+
+    Container(mobile_app, "Mobile App", "React Native / Flutter", "Aplicación cliente para consumidores y couriers")
+
+    Container(web_consumer, "Web App (Consumer)", "React / Vue", "Aplicación web para consumidores")
+
+    Container(web_restaurant, "Restaurant Dashboard", "React / Vue", "Dashboard para restaurantes")
+
+    Container(api_gateway, "API Gateway", "Spring Cloud Gateway / Kong", "Punto de entrada único")
+
+    Container(consumer_service, "Consumer Service", "Java 17 / Spring Boot", "Gestión de consumidores")
+
+    Container(restaurant_service, "Restaurant Service", "Java 17 / Spring Boot", "Gestión de restaurantes y menús")
+
+    Container(order_service, "Order Service", "Java 17 / Spring Boot", "Toma y validación de pedidos")
+
+    Container(kitchen_service, "Kitchen Service", "Java 17 / Spring Boot", "Gestión de tickets de cocina")
+
+    Container(delivery_service, "Delivery Service", "Java 17 / Spring Boot", "Asignación y tracking de couriers")
+
+    Container(billing_service, "Billing Service", "Java 17 / Spring Boot", "Procesamiento de pagos")
+
+    Container(notification_service, "Notification Service", "Node.js / Python", "Envío de emails, SMS y notificaciones")
+
+    Container(kafka_broker, "Kafka Broker", "Apache Kafka", "Bus de eventos")
+
+    Container(api_cache, "API Cache", "Redis", "Cache distribuida")
+
+    ContainerDb(consumer_db, "Consumer DB", "PostgreSQL", "Datos de consumidores")
+
+    ContainerDb(restaurant_db, "Restaurant DB", "PostgreSQL", "Datos de restaurantes")
+
+    ContainerDb(order_db, "Order DB", "PostgreSQL", "Datos de pedidos")
+
+    ContainerDb(delivery_db, "Delivery DB", "PostgreSQL", "Datos de entregas")
+
+    ContainerDb(billing_db, "Billing DB", "PostgreSQL", "Datos financieros")
+
+    ContainerDb(event_log, "Event Store", "PostgreSQL", "Auditoría y eventos")
+}
+
+System_Boundary(legacy_ftgo, "Monolito Legacy") {
+
+    Container(ftgo_monolith, "FTGO Monolith", "Java WAR", "Sistema legado")
+
+    ContainerDb(monolith_db, "Monolith DB", "MySQL/Oracle", "Base de datos legacy")
+}
+
+System_Ext(stripe_ext, "Stripe", "Pasarela de pago")
+System_Ext(gmaps_ext, "Google Maps", "Mapas y rutas")
+System_Ext(sendgrid_ext, "SendGrid", "Servicio de email")
+System_Ext(twilio_ext, "Twilio", "Servicio de SMS")
+
+Rel(consumer_c2, mobile_app, "Usa aplicación móvil", "iOS/Android")
+Rel(consumer_c2, web_consumer, "Usa aplicación web", "HTTPS")
+Rel(restaurant_c2, web_restaurant, "Gestiona pedidos", "HTTPS")
+Rel(courier_c2, mobile_app, "Acepta entregas", "iOS/Android")
+Rel(backoffice_c2, api_gateway, "Accede al sistema", "HTTPS")
+
+Rel(mobile_app, api_gateway, "API Requests", "JSON/HTTPS")
+Rel(web_consumer, api_gateway, "API Requests", "JSON/HTTPS")
+Rel(web_restaurant, api_gateway, "API Requests", "JSON/HTTPS")
+
+Rel(api_gateway, consumer_service, "Routing", "gRPC / HTTP")
+Rel(api_gateway, restaurant_service, "Routing", "gRPC / HTTP")
+Rel(api_gateway, order_service, "Routing", "gRPC / HTTP")
+Rel(api_gateway, kitchen_service, "Routing", "gRPC / HTTP")
+Rel(api_gateway, delivery_service, "Routing", "gRPC / HTTP")
+
+Rel(api_gateway, api_cache, "Consulta cache", "Redis Protocol")
+
+Rel(order_service, consumer_service, "Valida consumidor", "JSON/HTTPS")
+Rel(order_service, restaurant_service, "Valida restaurante", "JSON/HTTPS")
+Rel(order_service, kafka_broker, "Publica OrderCreated", "Kafka Protocol")
+Rel(order_service, order_db, "CRUD pedidos", "JDBC/SQL")
+
+Rel(kitchen_service, kafka_broker, "Consume OrderCreated", "Kafka Consumer Group")
+Rel(kitchen_service, order_db, "Consulta pedidos", "JDBC/SQL")
+Rel(kitchen_service, kafka_broker, "Publica TicketAccepted", "Kafka Protocol")
+
+Rel(billing_service, kafka_broker, "Consume OrderCreated", "Kafka Consumer Group")
+Rel(billing_service, stripe_ext, "Procesa pagos", "JSON/HTTPS")
+Rel(billing_service, kafka_broker, "Publica PaymentProcessed", "Kafka Protocol")
+Rel(billing_service, billing_db, "CRUD pagos", "JDBC/SQL")
+
+Rel(delivery_service, kafka_broker, "Consume PaymentProcessed", "Kafka Consumer Group")
+Rel(delivery_service, gmaps_ext, "Consulta rutas", "JSON/HTTPS")
+Rel(delivery_service, kafka_broker, "Publica CourierAssigned", "Kafka Protocol")
+Rel(delivery_service, delivery_db, "CRUD entregas", "JDBC/SQL")
+
+Rel(notification_service, kafka_broker, "Consume eventos", "Kafka Consumer Group")
+Rel(notification_service, sendgrid_ext, "Envía emails", "JSON/HTTPS")
+Rel(notification_service, twilio_ext, "Envía SMS", "JSON/HTTPS")
+
+Rel(consumer_service, consumer_db, "CRUD consumidores", "JDBC/SQL")
+Rel(restaurant_service, restaurant_db, "CRUD restaurantes", "JDBC/SQL")
+
+Rel(kafka_broker, event_log, "Archiva eventos", "Kafka Connect")
+
+Rel(ftgo_monolith, monolith_db, "CRUD legacy", "JDBC/SQL")
+Rel(api_gateway, ftgo_monolith, "Redirección Strangler Fig", "HTTP Proxy")
+Rel(monolith_db, consumer_db, "CDC replication", "Debezium")
+Rel(monolith_db, restaurant_db, "CDC replication", "Debezium")
+Rel(monolith_db, order_db, "CDC replication", "Debezium")
